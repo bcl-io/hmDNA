@@ -1,0 +1,7 @@
+bin
+.classpath
+.project
+.jar_tmp
+classes
+dist
+gatk-tools-java.version.properties

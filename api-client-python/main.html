@@ -1,0 +1,180 @@
+<!--
+Copyright 2014 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Libraries -->
+  <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" charset="utf-8"></script>
+  <script src="/static/js/bootstrap.min.js" charset="utf-8"></script>
+  <script src="/static/js/d3.v3.min.js" charset="utf-8"></script>
+  <script src="/static/js/underscore-min.js" charset="utf-8"></script>
+  <script src="/static/js/jquery.bootpag.min.js" charset="utf-8"></script>
+  <script src="/static/js/rbtree.js" charset="utf-8"></script>
+
+  <!-- Browser code -->
+  <link rel="stylesheet" href="/static/css/main.css">
+  <script src="/static/js/main.js" charset="utf-8"></script>
+  <script src="/static/js/readgraph.js" charset="utf-8"></script>
+  <script src="/static/js/readcache.js" charset="utf-8"></script>
+</head>
+
+<body>
+<nav class="navbar navbar-default" role="navigation">
+  <div class="navbar-brand">Genomics API Browser</div>
+  <div class="collapse navbar-collapse">
+    <ul class="nav navbar-nav" id="mainNav">
+      <li class="active"><a href="#" onclick="toggleUi('reads', this)">Browser</a></li>
+      <li><a href="#" data-toggle="modal" data-target="#about">About</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Modals -->
+<div class="modal" id="about">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">About GABrowse</h4>
+      </div>
+      <div class="modal-body">
+        <p class="lead">GABrowse is a sample application designed to demonstrate the capabilities of the
+        <a href="http://ga4gh.org/#/api">GA4GH API v0.5.1</a>.</p>
+
+        <p>Currently, you can view data from Google and Ensembl.</p>
+
+        <p>
+          <ul>
+            <li>Use the button on the left to select a Read group set or Call set.</li>
+            <li>Once loaded, choose a chromosome and zoom or drag the main graph to
+              explore <a href="http://en.wikipedia.org/wiki/DNA_sequence">Read data.</a></li>
+            <li>Individual <a href="http://en.wikipedia.org/wiki/Nucleobase">bases</a>
+              will appear once you zoom in far enough.</li>
+          </ul>
+        </p>
+
+        <p>The code for this application is in
+        <a href="https://github.com/googlegenomics/api-client-python">GitHub</a>
+        and is a work in progress. Patches welcome!</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="setSearch">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title">Select data to view</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-inline" style="margin-bottom: 10px">
+          <div class="form-group">
+            <select class="form-control" id="backend">
+              {% for backend, data in backends.iteritems() %}
+                <option value="{{ backend }}">
+                     {{ data.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            {% for backend, data in backends.iteritems() %}
+              <!-- TODO: Simplify this -->
+              <select class="form-control datasetSelector" id="datasetId{{ backend }}" supportsCallsets="{{ data.supportsCallsets }}">
+              {% for dataset, datasetId in data.datasets.iteritems() %}
+                  <option value="{{ datasetId }}"> {{ dataset }} </option>
+                {% endfor %}
+              </select>
+            {% endfor %}
+          </div>
+          <div class="form-group">
+            <input type="text" class="form-control" placeholder="name" id="setName"/>
+          </div>
+          <button type="submit" class="btn btn-primary" onclick="searchSets(this); return false;">Search</button>
+        </form>
+        <div>
+          <ul class="nav nav-tabs">
+            <li class="active" id="READSETTab"><a>Read group sets</a></li>
+            <li id="CALLSETTab"><a>Call sets</a></li>
+          </ul>
+          <div class="tab-content">
+            <div class="tab-pane active" id="searchPaneREADSET">
+              <div class="list-group results">
+                <img src="static/img/spinner.gif"/>
+              </div>
+              <div class="paginationContainer"></div>
+            </div>
+            <div class="tab-pane" id="searchPaneCALLSET">
+              <div class="list-group results">
+                <img src="static/img/spinner.gif"/>
+              </div>
+              <div class="paginationContainer"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Read browser -->
+<div class="toggleable reads">
+  <div class="col-md-2">
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#setSearch">
+      <span class="glyphicon glyphicon-plus"></span> Add data
+    </button>
+
+    <h5 id="CALLSETTitle" style="display:none">Call sets</h5>
+    <ul class="list-group" id="activeCALLSET" style="margin-top: 20px"></ul>
+
+    <h5 id="READSETTitle" style="display:none">Read group sets</h5>
+    <ul class="list-group" id="activeREADSET" style="margin-top: 20px"></ul>
+
+
+    <div class="well" style="display: none" id="jumpDiv">
+      <form role="form">
+        <div class="form-group">
+          <input type="text" class="form-control" name="name" placeholder="TAS2R38 or rs1726866 or 150,000" id="readsetPosition">
+        </div>
+        <button type="submit" class="btn btn-primary"
+                onclick="updateUserLocation($('#readsetPosition').val()); return false;">Jump to position</button>
+        <div id="jumpResults" class="list-group"></div>
+      </form>
+    </div>
+
+    <div class="infoDiv" style="display: none" id="variantDiv"></div>
+    <div class="infoDiv" style="display: none" id="readDiv"></div>
+  </div>
+
+  <div class="col-md-10">
+    <div id="chooseSetMessage">
+      <h3><small>Add a read group set or call set to get started.</small></h3>
+    </div>
+    <div id="sequences"></div>
+    <svg id="graph"></svg>
+  </div>
+</div>
+</body>
+</html>

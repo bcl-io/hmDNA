@@ -1,0 +1,170 @@
+/*
+Copyright 2014 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+
+/* html styles */
+#sequences {
+  white-space: nowrap;
+  overflow: auto;
+}
+
+#sequences .sequence {
+  border: 1px solid #e3e3e3;
+  border-radius: 4px;
+  height: 80px;
+  width: 200px;
+  display: inline-block;
+  margin: .5em;
+  padding: 4px;
+  cursor: pointer;
+}
+
+#sequences .sequence:hover {
+  background-color: #f5f5f5;
+}
+
+#sequences .sequence.active {
+  border-color: #357ebd;
+  background-color: #428bca;
+  color: white;
+}
+
+#sequences .sequence img {
+  max-height: 100%;
+  margin-right: .5em;
+}
+
+#sequences .sequence .title {
+  white-space: normal;
+  word-wrap: break-word;
+  display: inline-block;
+}
+
+#sequences .sequence .summary {
+  color: #999;
+}
+
+#sequences .sequence.active .summary {
+  color: white;
+}
+
+#sequences .sequence .badge {
+  background-color: #ddd;
+}
+
+#sequences .sequence.active .badge {
+  background-color: white;
+  color: #428bca;
+}
+
+.infoDiv h4 {
+  word-wrap: break-word;
+}
+
+#setSearch .modal-body {
+  padding-bottom: 0;
+}
+
+#setSearch .results {
+  padding-top: .75em;
+}
+
+.paginationContainer {
+  text-align: center;
+}
+
+.paginationContainer ul {
+  margin: 0;
+}
+
+#jumpResults {
+  margin: 20px 0 0 0;
+}
+
+#jumpResults .title {
+  font-size: 1.1em;
+  font-weight: 500;
+}
+
+.alert {
+  z-index: 10000;
+  position: fixed;
+  top: 10px;
+  left: 50%;
+}
+
+/* svg styles */
+svg {
+  margin-top: 20px;
+  width: 100%;
+  height: 800px; /* Height is updated in readgraph.js */
+  display: none;
+}
+.axis line,
+.axis path {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.hoverline {
+  stroke: #999;
+}
+.hovertext {
+  fill: #999;
+}
+
+.positionIndicator.background {
+  fill: red;
+  fill-opacity: .1;
+}
+
+.positionIndicator a {
+  fill: #428bca;
+}
+
+.zoomGroup rect {
+  fill: white;
+}
+
+.read .outline {
+  stroke: gray;
+  fill: white;
+}
+.read.selected .outline {
+  stroke: black;
+  fill: #ccc
+}
+.letter {
+  text-anchor: middle;
+}
+
+.variant .outline {
+  stroke: black;
+}
+
+.coverageSummary, .coverage {
+  fill: none;
+  stroke: black;
+}
+
+#circleGraph path {
+  fill: white;
+  stroke: black;
+}
+
+#circleGraph path.selected {
+  fill: gray;
+}

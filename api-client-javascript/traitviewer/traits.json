@@ -1,0 +1,40 @@
+{"traits": [
+
+  {"name": "Red hair", "alleles": [
+    {"name": "rs34474212", "description": "Gene MC1R, normally C or T",
+      "contig": "16", "position": 89985912, "allele": "C", "score": 1},
+
+    {"name": "rs1805006", "description": "Gene MC1R, normally A or C",
+      "contig": "16", "position": 89985917, "allele": "A", "score": 1},
+
+    {"name": "rs11547464", "description": "Gene MC1R, normally A or G",
+      "contig": "16", "position": 89986090, "allele": "A", "score": 1},
+
+    {"name": "rs1110400", "description": "Gene MC1R, normally C or T",
+      "contig": "16", "position": 89986129, "allele": "C", "score": 1},
+
+    {"name": "rs1805007", "description": "Gene MC1R, normally C or G or T",
+      "contig": "16", "position": 89986116, "allele": "T", "score": 1},
+
+    {"name": "rs1805008", "description": "Gene MC1R, normally C or T",
+      "contig": "16", "position": 89986143, "allele": "T", "score": 1},
+
+    {"name": "i3002507", "description": "Gene MC1R, normally C or G",
+      "contig": "16", "position": 89986545, "allele": "C", "score": 1}
+  ], "scoreBands": [
+    {"score": 2, "description": "Probably has red hair"},
+    {"score": 0, "description": "Probably does not have red hair"}
+  ]
+  },
+
+
+  {"name": "Test trait", "alleles": [
+    {"contig": "22", "position": 16051476, "allele": "A", "score": 5},
+    {"contig": "22", "position": 16051476, "allele": "C", "score": 3}
+  ], "scoreBands": [
+    {"score": 6, "description": "score greater than 6"},
+    {"score": 1, "description": "score greater than 1"},
+    {"score": 0, "description": "score greater than 0"}
+  ]
+  }
+]}

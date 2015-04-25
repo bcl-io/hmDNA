@@ -1,0 +1,230 @@
+<!--
+Copyright 2014 Google Inc. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" charset="utf-8"></script>
+  <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+
+  <!-- The googlegenomics plugin can be sourced directly from rawgit.com -->
+  <script src="//rawgit.com/googlegenomics/api-client-javascript/master/googlegenomics.jquery.js"></script>
+
+  <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+
+  <style>
+    #scoreTable tr th:nth-child(4), #scoreTable tr td:nth-child(4) {
+      border-right: 2px solid #999;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container panel panel-default" style="width: 600px; margin-top: 20px;">
+  <div class="panel-body">
+    <form class="form">
+      <div class="form-group">
+        <label for="callSetId">Enter your call set ID</label>
+        <input type="text" class="form-control" id="callSetId" value="10473108253681171589-0"/> <!-- HG00096 in 1000 genomes -->
+      </div>
+      <div class="form-group">
+        <label for="traitSelector">Choose a trait</label>
+        <select class="form-control" id="traitSelector"></select>
+      </div>
+    </form>
+
+    <div>
+      <table class="table table-hover" id="scoreTable">
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>Contig</th>
+          <th>Position</th>
+          <th>Allele</th>
+          <th>Call set genotype</th>
+          <th>Call set score</th>
+        </tr>
+        </thead>
+        <tbody id="alleleScores"></tbody>
+        <tfoot>
+        <tr>
+          <td colspan="5"></td>
+          <td id="totalScore" class="callSetClear" style="font-weight: bold;"></td>
+        </tr>
+        </tfoot>
+      </table>
+      <button class="btn btn-primary" id="scoreButton" data-loading-text="Loading data"
+              onclick="calculateScore(true)">Score</button>
+    </div>
+  </div>
+</div>
+
+
+<script type="text/javascript">
+// Setup the genomics plugin
+var clientId = window.location.hash.substring(1);
+if (!clientId) {
+  alert('A client ID is required. Please append one to the url: ' +
+      'http://localhost:8000/traitviewer#my-client-id');
+} else {
+  $.initGenomics({clientId: clientId});
+}
+
+// Load the trait data into the UI
+var currentPanel = null;
+$(document).ready(function() {
+  $.getJSON("traits.json", function(json) {
+    var traits = json.traits;
+
+    var selector = $("#traitSelector");
+    var alleleScores = $("#alleleScores");
+    var totalScore = $("#totalScore");
+
+    for (var i = 0; i < traits.length; i++) {
+      $("<option/>", {"value": i}).text(traits[i].name).appendTo(selector);
+    }
+
+    selector.change(function() {
+      currentPanel = traits[selector.val()];
+      alleleScores.empty().append(createAlleleRows(currentPanel));
+      totalScore.empty();
+    }).change();
+  });
+});
+
+function createAlleleRows(panel) {
+  var rows = [];
+  for (var i = 0; i < panel.alleles.length; i++) {
+    var allele = panel.alleles[i];
+    var row = $("<tr/>");
+    $("<td/>").text(allele.name).appendTo(row);
+    $("<td/>").text(allele.contig).appendTo(row);
+    $("<td/>").text(allele.position).appendTo(row);
+    $("<td/>").text(allele.allele).appendTo(row);
+    $("<td/>", {id: "callSetAllele" + i, 'class': 'callSetClear'}).appendTo(row);
+    $("<td/>", {id: "callSetScore" + i, 'class': 'callSetClear'}).appendTo(row);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+
+// Scoring handlers
+
+function calculateScore() {
+  $("#scoreButton").button('loading');
+  $(".callSetClear").empty();
+  $("#alleleScores tr").removeClass();
+
+  $.authGenomics(scorePanel);
+}
+
+function scorePanel() {
+  var callSetInput = $("#callSetId");
+  var callSetId = callSetInput.val();
+
+  var totals = {finished: 0, score: 0, count: currentPanel.alleles.length};
+  for (var i = 0; i < currentPanel.alleles.length; i++) {
+    var allele = currentPanel.alleles[i];
+    scoreAllele(callSetId, allele, i, totals);
+  }
+}
+
+function scoreAllele(callSetId, allele, number, totals) {
+  var params = {
+    referenceName: allele.contig,
+    // Note: the variants API uses 0-based coordinates
+    start: allele.position,
+    end: allele.position + 1,
+    callSetIds: [callSetId]
+  };
+
+  // Search over the variants at each contig position to see what
+  // genotype the call set has.
+  $.genomicsAjax('/variants/search', {
+    version: 'v1beta2',
+    method: 'POST',
+    data: JSON.stringify(params),
+    success: function(json) {
+      var callSetGenotype = getGenotype(json.variants || [],
+          allele.position, callSetId);
+
+      var matchesAllele = callSetGenotype.indexOf(allele.allele) != -1;
+      var callSetScore = matchesAllele ? allele.score : 0;
+
+      $("#callSetAllele" + number).text(callSetGenotype.join(";"));
+      $("#callSetScore" + number).text(callSetScore).parent()
+          .addClass(matchesAllele ? "success" : "");
+
+      totals.score += callSetScore;
+      totals.finished++;
+
+
+      // Once all the alleles have been loaded, display the total score
+      if (totals.finished == totals.count) {
+        var description = "";
+        for (var i = 0; i < currentPanel.scoreBands.length; i++) {
+          var band = currentPanel.scoreBands[i];
+          if (totals.score >= band.score) {
+            description = band.description;
+            break;
+          }
+        }
+
+        $("#scoreButton").button('reset');
+
+        var scoreDiv = $("#totalScore");
+        $("<div>").text(totals.score).appendTo(scoreDiv);
+        $("<div>").text(description).appendTo(scoreDiv);
+      }
+    }
+  });
+}
+
+function getGenotype(variants, position, callSetId) {
+  // Excessively complicated logic to figure out the actual genotype for
+  // a call set at a given spot
+  for (var i = 0; i < variants.length; i++) {
+    var variant = variants[i];
+    if (variant.start != position) {
+      continue;
+    }
+
+    for (var c = 0; c < variant.calls.length; c++) {
+      var call = variant.calls[c];
+      if (call.callSetId != callSetId) {
+        continue;
+      }
+
+      var genotype = [];
+      for (var g = 0; g < call.genotype.length; g++) {
+        var allele = call.genotype[g];
+        if (allele == 0) {
+          genotype.push(variant.referenceBases);
+        } else {
+          genotype.push(variant.alternateBases[allele - 1]);
+        }
+      }
+
+      return genotype;
+    }
+  }
+
+  return ["unknown"];
+}
+</script>
+</body>
+</html>

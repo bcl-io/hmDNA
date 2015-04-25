@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<project name="gatk-tools-java" basedir="." default="all">
+
+    <property name="src" value="src/main/java"/>
+    <property name="lib" value="lib"/>
+    <property name="dist" value="dist"/>
+    <property name="classes" value="classes"/>
+    <property name="jar_tmp" value=".jar_tmp"/>
+   
+    <property name="javac.target" value="1.6"/>
+    <property name="javac.debug" value="true"/>
+
+    <!-- Get GIT hash, if available, otherwise leave it blank.  -->
+    <exec executable="git" outputproperty="repository.revision" failifexecutionfails="true" errorproperty="">
+        <arg value="log"/>
+        <arg value="-1"/>
+        <arg value="--pretty=format:%H_%at"/>
+    </exec>
+    <property name="repository.revision" value=""/>
+    <property name="gatk-tools-java-version" value="1.0"/>
+    <property name="gatk-tools-java-version-file" value="gatk-tools-java.version.properties"/>
+   
+    <!-- VERSION PROPERTY --> 
+    <target name="write-version-property">
+        <propertyfile
+            file="${gatk-tools-java-version-file}"
+            comment="gatk-tools-java version">
+            <entry  key="gatk-tools-java-version" value="${gatk-tools-java-version}"/>
+        </propertyfile>
+    </target>
+
+    <!-- INIT -->
+    <target name="init" depends="write-version-property">
+        <path id="classpath">
+        	<fileset dir="${lib}">
+        	  <include name="guava-18.0.jar"/>
+        	</fileset>
+          <fileset dir="${lib}">  
+            <include name="*.jar"/>
+          	<exclude name="guava-18.0.jar"/>
+          </fileset>
+        </path>
+    </target>
+
+    <!-- CLEAN -->
+    <target name="clean">
+        <delete dir="${classes}"/>
+        <delete dir="${dist}"/>
+        <delete dir="javadoc"/>
+        <delete dir="${jar_tmp}"/>
+    	  <delete file="${gatk-tools-java-version-file}"/> 	
+    </target>
+
+    <!-- COMPILE -->
+    <target name="compile" depends="init"
+            description="Compile files without cleaning">
+    	<compile-src includes="**/*.*"/>
+    </target>
+
+   
+    <target name="gatk-tools-java-jar" depends="compile"
+            description="Builds gatk-tools-java-${gatk-tools-java-version}.jar for inclusion in other projects">
+        <mkdir dir="${dist}"/>
+        <delete dir="${jar_tmp}"/>
+        <mkdir dir="${jar_tmp}"/>
+        <copy todir="${jar_tmp}">
+            <fileset dir="${classes}" includes="**/*"/>
+        </copy>
+        <unzip dest="${jar_tmp}">
+            <fileset dir="${lib}">
+                <include name="*.jar"/>
+            </fileset>
+        </unzip>
+        <jar destfile="${dist}/gatk-tools-java-${gatk-tools-java-version}.jar" compress="no">
+        	 <fileset dir="${jar_tmp}" includes="**/*.*"/>
+            <manifest>
+            	  <attribute name="Implementation-Title" value="@gatk-tools-java"/>
+                <attribute name="Implementation-Version" value="${gatk-tools-java-version}(${repository.revision})"/>
+            </manifest>
+        </jar>
+        <copy todir="${dist}">
+            <fileset dir="lib" includes="*.jar"/>
+        </copy>
+    </target>
+	
+	 <target name="gatk-tools-java-picard-jar" depends="compile"
+	            description="Builds gatk-tools-java-picard-${gatk-tools-java-version}.jar for inclusion in Picard. Removes unneccessary deps.">
+	        <mkdir dir="${dist}"/>
+	        <delete dir="${jar_tmp}"/>
+	        <mkdir dir="${jar_tmp}"/>
+	        <copy todir="${jar_tmp}">
+	            <fileset dir="${classes}" includes="**/*"/>
+	        </copy>
+	        <unzip dest="${jar_tmp}">
+	            <fileset dir="${lib}">
+	                <include name="*.jar"/>
+	                <exclude name="htsjdk*.jar" />
+	            </fileset>
+	        </unzip>
+	        <delete includeEmptyDirs="true">
+	         <fileset dir="${jar_tmp}">
+	         	 <include name="**/maven/**/*" />
+	         	 <include name="**/com/beust/**/*" />
+	         	 <include name="**/commons-logging/**/*" />
+	         	 <include name="**/org/apache/commons/logging/**/*" />
+	         </fileset>
+	        </delete>
+	        <jar destfile="${dist}/gatk-tools-java-picard-${gatk-tools-java-version}.jar" compress="no">
+	           <fileset dir="${jar_tmp}" includes="**/*.*"/>
+	            <manifest>
+	                <attribute name="Implementation-Title" value="@gatk-tools-java"/>
+	                <attribute name="Implementation-Version" value="${gatk-tools-java-version}(${repository.revision})"/>
+	            </manifest>
+	        </jar>
+	        <copy todir="${dist}">
+	            <fileset dir="lib" includes="*.jar"/>
+	        </copy>
+	    </target>
+
+ 
+
+    <!-- ALL -->
+    <target name="all" depends="compile, gatk-tools-java-jar" description="Default build target">
+    </target>
+
+    <!-- ************************************************************************************** -->
+    <!-- ************************************************************************************** -->
+    <!-- Beginning of taskdefs that are used elsewhere in the build file                        -->
+    <!-- ************************************************************************************** -->
+    <!-- ************************************************************************************** -->
+
+    <!-- Compile source files specified by includes, from source root. Can specifically
+    include or exclude-->
+    <macrodef name="compile-src">
+        <attribute name="includes" default=""/>
+        <attribute name="excludes" default=""/>
+        <attribute name="destdir" default="${classes}"/>
+        <attribute name="compile.classpath" default="classpath"/>
+        <attribute name="compiler.args" default=""/>
+        <sequential>
+        <mkdir dir="${classes}"/>
+            <!-- unset the sourcepath attribute in order to compile only files explicitly specified and disable javac's default searching mechanism -->
+            <javac destdir="@{destdir}"
+                   optimize="${javac.opt}"
+                   debug="${javac.debug}"
+                   sourcepath=""
+                   srcdir="${src}"
+                   includes="@{includes}"
+                   excludes="@{excludes}"
+                   source="${javac.target}"
+                   target="${javac.target}"
+            	     includeantruntime="false">
+                <classpath refid="@{compile.classpath}"/>
+                <compilerarg line="@{compiler.args}" />
+            </javac>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="compile-tests">
+        <attribute name="includes" default=""/>
+        <attribute name="excludes" default=""/>
+        <attribute name="compiler.args" default=""/>
+
+        <sequential>
+            <mkdir dir="${classes.test}"/>
+            <javac destdir="${classes.test}"
+                   optimize="${javac.opt}"
+                   debug="${javac.debug}"
+                   srcdir="${src.test.java}"
+                   includes="@{includes}"
+                   excludes="@{excludes}"
+                   source="${javac.target}"
+                   target="${javac.target}"
+                   includeantruntime="false">
+                <classpath>
+                    <path refid="classpath"/>
+                    <pathelement location="${classes}"/>
+                </classpath>
+                <compilerarg line="@{compiler.args}"/>
+            </javac>
+        </sequential>
+    </macrodef>
+</project>
