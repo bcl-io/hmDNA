@@ -1,6 +1,6 @@
 #hmDNA
 
-##Part of the upcoming *Ghost in the Cell* project, coming to the [21st Century Museum of Contemporary Art](https://www.kanazawa21/ ) in Kanazawa, Japan in September 2015.
+##Part of the upcoming *Ghost in the Cell* project, coming to the [21st Century Museum of Contemporary Art](https://www.kanazawa21/) in Kanazawa, Japan in September 2015.
 
 DNA is the carrier of our genetic information, it defines our biological bodies - we share DNA with all other living creatures on earth. It's what makes us unique, and at the same time connects us to all other living beings.
 
@@ -8,7 +8,7 @@ The mission of the hmDNA Project to create a fully synthetic genome for a virtua
 
 
 ### 1. Source Data
-Use publicly available japanese genome from the (1000 Genomes Project)[http://www.1000genomes.org] as a data source.
+Use publicly available japanese genome from the [1000 Genomes Project](http://www.1000genomes.org) as a data source.
 
 ### 2. Functional Backbone
 Search for coding and functional non-coding regions and copy them to the new hmGenome. This will ensure that the resulting genome could be potentially functioning, it will make sure that there is enough free space that can be occupied by other data.
